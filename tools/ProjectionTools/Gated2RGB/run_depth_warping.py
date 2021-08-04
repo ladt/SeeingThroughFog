@@ -12,8 +12,8 @@ import argparse
 def parsArgs():
     parser = argparse.ArgumentParser(description='Gated2RGB projection tool')
     parser.add_argument('--root', '-r', help='Enter the root folder', default='./example_data')
-    parser.add_argument('--depth_folder', '-d', help='Data folder precise depth', default='psmnet_sweden', choices=['cam_stereo_sgm', 'psmnet_sweden'])
-    parser.add_argument('--debug', '-deb', type=bool, help='Save human readable image', default=True)
+    parser.add_argument('--depth_folder', '-d', help='Data folder precise depth', default='psmnet_sweden', choices=['/home/elad/Data/SeeingThroughFog/cam_stereo_sgm', 'psmnet_sweden'])
+    parser.add_argument('--debug', '-deb', type=bool, help='Save human readable image', default=False) # TODO change value through default value only!
     parser.add_argument('--suffix', '-s', type=str, help='Define suffix for warped images', default='psm_warped')
     args = parser.parse_args()
 
@@ -22,10 +22,12 @@ def parsArgs():
 
 class DepthWarpingWrapper():
     # Class loads Raw Images
+    # TODO make sure to include folders at runtime
     gated_keys = ['gated0_raw', 'gated1_raw', 'gated2_raw']
     image_keys = ['cam_stereo_left'] # Add raw
     history_images = ['cam_stereo_left_raw_history_%d'%i for i in range(-6,5)]
 
+    # 'psm_sweden' should work for all data
     def __init__(self, source_dir=None, dest_root=None, suffix=None, DEBUG=True, depthfolder='psm_sweden'):
         self.source_dir = source_dir
         self.dest_root = dest_root
@@ -73,10 +75,10 @@ class DepthWarpingWrapper():
             else:
                 depth_single = cv2.resize(disparity2depth_psm(np.load(os.path.join(self.source_dir, self.depth_folder, entry_id + '.npz'))['arr_0']), (1920, 1024)) #
 
+            # TODO projection functuion - img shape from (720, 1280, 3) to (768, 1280, 3)
             img = self.WarpGated.process_image_ego_motion((768, 1280), img, depth_single, vehicle_speed, angle, delay[folder.split('_')[0]], self.RG.PC.K)
             gated_images[folder] = img
             gated_images_shape[folder] = ([img_height, img_width, 1])
-
 
         data = {}
         data['image_data'] = dist_images
@@ -126,7 +128,7 @@ if __name__ == '__main__':
     # Read files
     files = os.listdir(os.path.join(args.root, 'cam_stereo_left'))
     print(files)
-    for key in files:
+    for key in files: # perform for every file in left Vis camera folder:
         key = key.split('.tiff')[0]
         print(key)
         delta0 = float(load_time('gated0',key)[1] - load_time('rgb', key)[1])/10**9
@@ -141,9 +143,9 @@ if __name__ == '__main__':
         angle = load_stearing_ange(args.root, key)/520*30 # conversion from steering angle to heading. Assumption of 3 steering wheel rotations from end to end and a maximum heading of 30°.
 
 
-        data = T.read_data_and_process(key, speed, delays, angle)
-        img1, rgb1, output1 = T.save_gated_data(data, key)
-
+        data = T.read_data_and_process(key, speed, delays, angle) # see lines 82-88, data is a dictionary of dictionaries for each wraped image type & input folder
+        img1, rgb1, output1 = T.save_gated_data(data, key) # img1 is gated projected to RGB, rgb1 is RGB cropped to same field of view, output1 is raw gated presented as RGB
+        # if arg DEBUG is false, saves projected gated-to-RGB image ('tiff' file suffix) in 'warped' (no 'debug) suffix folder (above return values are None)
 
         if args.debug == True:
             delays2 = {
@@ -151,7 +153,7 @@ if __name__ == '__main__':
                 'gated1': 0,
                 'gated2': 0
             }
-            data2 = T2.read_data_and_process(key, speed, delays2, 0)
+            data2 = T2.read_data_and_process(key, speed, delays2, 0) # no correction
             img2, rgb2, output2 = T2.save_gated_data(data2, key)
             cv2.imshow('DEBUG', np.hstack((img1, img2)))
             print(speed, angle, delays['gated0'])

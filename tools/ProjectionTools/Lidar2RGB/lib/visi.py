@@ -48,6 +48,31 @@ def plot_image_projection(pointcloud, vtc, velodyne_to_camera, frame='default', 
     plt.imshow(lidar_image)
     plt.show()
 
+# Aux function
+def plot_lidar_projection_on_image(img_pth, pointcloud, vtc, velodyne_to_camera, frame='default', title=None, out_pth=None):
+
+    from PIL import Image
+
+    # Resize image to other crop
+    r = resize(frame)
+
+    lidar_image = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
+                                     list(r.dsize)[::-1] + [3], init=np.zeros(list(r.dsize)[::-1] + [3]),
+                                     draw_big_circle=True)
+
+    img = Image.open(img_pth)
+
+    if title is not None:
+        plt.title(title)
+
+    plt.imshow(img)
+    plt.imshow(lidar_image, alpha=0.5)
+    plt.axis('off')
+    if not out_pth:
+        plt.show()
+    else:
+        plt.savefig(out_pth, bbox_inches='tight', dpi=300)
+
 
 def plot_3d_scatter(pointlcoud, plot_show=True):
     fig = plt.figure()
