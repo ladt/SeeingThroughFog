@@ -50,15 +50,15 @@ def plot_image_projection(pointcloud, vtc, velodyne_to_camera, frame='default', 
 
 # Aux function
 def plot_lidar_projection_on_image(img_pth, pointcloud, vtc, velodyne_to_camera, frame='default', title=None, out_pth=None):
-
+    # pointcloud.shape==(54837, 5)
     from PIL import Image
 
     # Resize image to other crop
     r = resize(frame)
-
     lidar_image = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
                                      list(r.dsize)[::-1] + [3], init=np.zeros(list(r.dsize)[::-1] + [3]),
                                      draw_big_circle=True)
+    # lidar_image.shape==(1024, 1920, 3) - same as RGB image
 
     img = Image.open(img_pth)
 

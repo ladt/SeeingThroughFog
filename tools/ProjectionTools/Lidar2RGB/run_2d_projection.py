@@ -52,7 +52,6 @@ if __name__ == '__main__':
                                            interesting_sample + '.bin')
         lidar_data_last = load_velodyne_scan(velo_file_last)
         lidar_data_strongest = load_velodyne_scan(velo_file_strongest)
-
         # print('last shape:', lidar_data_last.shape)
         # lidar_data_last = filter(lidar_data_last, 1.5)
         # print('strongest shape:', lidar_data_strongest.shape)
@@ -80,3 +79,4 @@ if __name__ == '__main__':
             os.makedirs(out_dir)
         out_pth = os.path.join(out_dir, interesting_sample + '.png')
         plot_lidar_projection_on_image(img_pth, lidar_data_strongest, vtc, velodyne_to_camera, title='Lidar on Camera Projection Strongest Echo', out_pth=out_pth)
+        break

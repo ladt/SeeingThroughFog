@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import scipy.spatial
@@ -17,23 +18,26 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         return points_2D.transpose()
 
     def py_func_create_lidar_img(lidar_points_2D, lidar_points, img_width=1248, img_height=375, init=None):
+        # lidar_points_2d shape (19988, 2), each line is 2d image coordinates
+        # lidar_points shape (3, 19988)
         within_image_boarder_width = np.logical_and(img_width > lidar_points_2D[:, 0], lidar_points_2D[:, 0] >= 0)
         within_image_boarder_height = np.logical_and(img_height > lidar_points_2D[:, 1], lidar_points_2D[:, 1] >= 0)
 
-        valid_points = np.logical_and(within_image_boarder_width, within_image_boarder_height)
-        coordinates = np.where(valid_points)[0]
+        valid_points = np.logical_and(within_image_boarder_width, within_image_boarder_height) #(19988,) boolean array
+        coordinates = np.where(valid_points)[0] #(4222,) - enteries of valid points in lidar_points
+        values = lidar_points[:, coordinates] #(3, 4222)
 
-        values = lidar_points[:, coordinates]
         if init is None:
-            image = -120.0 * np.ones((img_width, img_height, 3))
+            image = -120.0 * np.ones((img_width, img_height, 3)) #image.shape==(1920, 1024, 3)
         else:
-            print(init.shape)
-            image = init.transpose((1, 0, 2))
+            image = init.transpose((1, 0, 2))  #image.shape==(1920, 1024, 3), zeroes
 
-        img_coordinates = lidar_points_2D[coordinates, :].astype(dtype=np.int32)
+        img_coordinates = lidar_points_2D[coordinates, :].astype(dtype=np.int32) #(4222, 2)
+
+        draw_big_circle=False # TODO
 
         if not draw_big_circle:
-            image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose()
+            image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose() # image is (1920, 1024, 3), values.transpose is (4222, 3)
         else:
             # Slow elementwise circle drawing through opencv
             len = img_coordinates.shape[0]
@@ -45,8 +49,9 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
             cmap = cm.jet
             m = cm.ScalarMappable(norm, cmap)
 
-            depth_map_color = values.transpose()[:, 1]
+            depth_map_color = values.transpose()[:, 1] #values.transpose is (4222, 3), [:, 1] is probably depth (z)
             depth_map_color = m.to_rgba(depth_map_color)
+
 
             depth_map_color = (255 * depth_map_color).astype(dtype=np.uint8)
             for idx in range(len):
@@ -56,17 +61,16 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
                 tupel_value = (int(value[0]), int(value[1]), int(value[2]))
                 # print tupel_value
                 cv2.circle(image, (x, y), 3, tupel_value, -1)
+            return image #(1024, 1920, 3)
 
-            return image
-
-        return image.transpose([1, 0, 2]).squeeze()
+        return image.transpose([1, 0, 2]).squeeze() #(1024, 1920, 3)
 
     def py_func_lidar_projection(lidar_points_3D, vtc, velodyne_to_camera, shape, init=None):  # input):
 
         img_width = shape[1]
         img_height = shape[0]
         # print img_height, img_width
-        lidar_points_3D = lidar_points_3D[:, 0:4]
+        lidar_points_3D = lidar_points_3D[:, 0:4] #(54837, 4)
 
         # Filer away all points behind image plane
         min_x = 2.5
@@ -81,17 +85,16 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         velodyne_to_camera2[0:4, 0:4] = velodyne_to_camera
         velodyne_to_camera2[4, 4] = 1
 
-        lidar_points_2D = py_func_project_3D_to_2D(lidar_points_3D.transpose()[:][0:3], vtc)
-
+        lidar_points_2D = py_func_project_3D_to_2D(lidar_points_3D.transpose()[:][0:3], vtc) #lidar_points_2d.shape=(19988, 2)
         pts_3D = np.matmul(velodyne_to_camera2, lidar_points_3D2.transpose())
         # detelete placeholder 1 axis
-        pts_3D = np.delete(pts_3D, 3, axis=0)
+        pts_3D = np.delete(pts_3D, 3, axis=0) #pts_3d.shape==(4, 19988)
 
-        pts_3D_yzi = pts_3D[1:, :]
+        pts_3D_yzi = pts_3D[1:, :] #(3, 19988)
 
         return py_func_create_lidar_img(lidar_points_2D, pts_3D_yzi, img_width=img_width,
                                         img_height=img_height, init=init)
-
+    # lidar.shape==(54837, 5)
     return py_func_lidar_projection(lidar, vtc, velodyne_to_camera, image_shape, init=init)
 
 
