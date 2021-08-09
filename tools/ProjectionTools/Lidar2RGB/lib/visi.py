@@ -62,16 +62,18 @@ def plot_lidar_projection_on_image(img_pth, pointcloud, vtc, velodyne_to_camera,
 
     img = Image.open(img_pth)
 
-    fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(img)
-    ax[0].imshow(lidar_image, alpha=0.5)
-    ax[1].imshow(img)
-    ax[1].imshow(inter_lidar_image, alpha=0.5)
+    plt.title(title)
+    fig, ax = plt.subplots(2, 2)
+    ax[0][1].imshow(img)
+    ax[0][1].imshow(lidar_image, alpha=0.5)
+    ax[1][1].imshow(img)
+    ax[1][1].imshow(inter_lidar_image, alpha=0.5)
+    ax[0][0].imshow(img)
+    ax[1][0].imshow()
     plt.show()
 
     # TODO
     # if title is not None:
-    #     plt.title(title)
     # plt.imshow(img)
     # plt.imshow(lidar_image, alpha=0.5)
     # plt.axis('off')

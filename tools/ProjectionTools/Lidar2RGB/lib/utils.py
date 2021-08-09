@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import scipy.spatial
 from sklearn.linear_model import RANSACRegressor
+import .sett
 
 
 def dense_map(Pts, n, m, grid):
@@ -77,7 +78,22 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         img_coordinates = lidar_points_2D[coordinates, :].astype(dtype=np.int32) #(4222, 2)
 
         final_coordinates = np.concatenate((img_coordinates, values.transpose()[:, 1][:, np.newaxis]), 1).transpose()
-        inter_image = dense_map(final_coordinates, img_width, img_height, grid=15)
+        inter_image = dense_map(final_coordinates, img_width, img_height, grid=8)
+
+        import matplotlib as mpl
+        import matplotlib.cm as cm
+
+        norm = mpl.colors.Normalize(vmin=0, vmax=80)
+        cmap = cm.jet
+        m = cm.ScalarMappable(norm, cmap)
+
+        depth_map_color = inter_image.reshape(-1)
+        depth_map_color = m.to_rgba(depth_map_color)
+        depth_map_color = (255 * depth_map_color).astype(dtype=np.uint8)
+        depth_map_color = np.array(depth_map_color)[:, :3]
+        depth_map_color = depth_map_color.reshape((inter_image.shape[0], inter_image.shape[1], 3))
+        inter_image = depth_map_color
+
 
         if not draw_big_circle:
             image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose() # image is (1920, 1024, 3), values.transpose() is (4222, 3)
@@ -85,17 +101,12 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
             # Slow elementwise circle drawing through opencv
             len = img_coordinates.shape[0]
             image = image.transpose([1, 0, 2]).squeeze().copy()
-            import matplotlib as mpl
-            import matplotlib.cm as cm
-            norm = mpl.colors.Normalize(vmin=0, vmax=80)
-            cmap = cm.jet
-            m = cm.ScalarMappable(norm, cmap)
 
             depth_map_color = values.transpose()[:, 1] #values.transpose is (4222, 3), [:, 1] is depth (z)
             depth_map_color = m.to_rgba(depth_map_color)
-
-
             depth_map_color = (255 * depth_map_color).astype(dtype=np.uint8)
+
+
             for idx in range(len):
                 x, y = img_coordinates[idx, :]
                 value = depth_map_color[idx]
