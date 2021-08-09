@@ -3,6 +3,7 @@ from tools.DatasetViewer.lib.read import load_calib_data
 from tools.ProjectionTools.Lidar2RGB.lib.utils import filter, \
     find_closest_neighbors, find_missing_points, transform_coordinates
 from tools.ProjectionTools.Lidar2RGB.lib.visi import plot_spherical_scatter_plot, plot_image_projection, plot_lidar_projection_on_image
+import lib.settings
 # import cv2
 import numpy as np
 
@@ -78,5 +79,6 @@ if __name__ == '__main__':
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         out_pth = os.path.join(out_dir, interesting_sample + '.png')
+        lib.settings.grid_size = 10
         plot_lidar_projection_on_image(img_pth, lidar_data_strongest, vtc, velodyne_to_camera, title='Lidar on Camera Projection Strongest Echo', out_pth=None)
         break

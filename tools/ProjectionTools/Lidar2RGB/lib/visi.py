@@ -55,21 +55,25 @@ def plot_lidar_projection_on_image(img_pth, pointcloud, vtc, velodyne_to_camera,
 
     # Resize image to other crop
     r = resize(frame)
-    lidar_image, inter_lidar_image = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
+    lidar_image, inter_lidar_image, inter_lidar_image_colormap = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
                                      list(r.dsize)[::-1] + [3], init=np.zeros(list(r.dsize)[::-1] + [3]),
                                      draw_big_circle=True)
     # lidar_image.shape==(1024, 1920, 3) - same as RGB image
 
     img = Image.open(img_pth)
 
-    plt.title(title)
     fig, ax = plt.subplots(2, 2)
     ax[0][1].imshow(img)
     ax[0][1].imshow(lidar_image, alpha=0.5)
+    ax[0][1].title.set_text('raw Lidar on RGB image')
     ax[1][1].imshow(img)
     ax[1][1].imshow(inter_lidar_image, alpha=0.5)
+    ax[1][1].title.set_text('interpolated Lidar on RGB image')
     ax[0][0].imshow(img)
-    ax[1][0].imshow()
+    ax[0][0].title.set_text('raw RGB image')
+    ax[1][0].imshow(inter_lidar_image_colormap)
+    ax[1][0].title.set_text('interpolated Lidar (different depth colorspace)')
+    plt.tight_layout()
     plt.show()
 
     # TODO

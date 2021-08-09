@@ -3,8 +3,13 @@ import numpy as np
 import cv2
 import scipy.spatial
 from sklearn.linear_model import RANSACRegressor
-import .sett
-
+import os
+import sys
+import inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+import lib.settings
 
 def dense_map(Pts, n, m, grid):
     '''
@@ -78,7 +83,7 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         img_coordinates = lidar_points_2D[coordinates, :].astype(dtype=np.int32) #(4222, 2)
 
         final_coordinates = np.concatenate((img_coordinates, values.transpose()[:, 1][:, np.newaxis]), 1).transpose()
-        inter_image = dense_map(final_coordinates, img_width, img_height, grid=8)
+        inter_image = dense_map(final_coordinates, img_width, img_height, grid=lib.settings.grid_size)
 
         import matplotlib as mpl
         import matplotlib.cm as cm
@@ -87,12 +92,12 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         cmap = cm.jet
         m = cm.ScalarMappable(norm, cmap)
 
-        depth_map_color = inter_image.reshape(-1)
+        depth_map_color = np.copy(inter_image).reshape(-1)
         depth_map_color = m.to_rgba(depth_map_color)
         depth_map_color = (255 * depth_map_color).astype(dtype=np.uint8)
         depth_map_color = np.array(depth_map_color)[:, :3]
         depth_map_color = depth_map_color.reshape((inter_image.shape[0], inter_image.shape[1], 3))
-        inter_image = depth_map_color
+        inter_image_colormap = depth_map_color
 
 
         if not draw_big_circle:
@@ -113,8 +118,8 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
                 # print value
                 tupel_value = (int(value[0]), int(value[1]), int(value[2]))
                 # print tupel_value
-                cv2.circle(image, (x, y), 3, tupel_value, -1)
-            return image, inter_image #(1024, 1920, 3)
+                cv2.circle(image, (x, y), 1, tupel_value, -1) # TODO was 3
+            return image, inter_image, inter_image_colormap #(1024, 1920, 3)
 
         return image.transpose([1, 0, 2]).squeeze() #(1024, 1920, 3)
 
