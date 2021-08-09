@@ -5,6 +5,48 @@ import scipy.spatial
 from sklearn.linear_model import RANSACRegressor
 
 
+def dense_map(Pts, n, m, grid):
+    '''
+    interpolate lidar depth
+    :param Pts: num observations of (W, H, D) lidar coordinates (D - depth corrsponding to (W,H) image positions), Pts.shape==(3, num)
+    :param n: image width
+    :param m: image height
+    :param grid: (grid*2+1) is neighborhood size
+    :return:
+    '''
+    ng = 2 * grid + 1
+
+    mX = np.zeros((m, n)) + np.float("inf")
+    mY = np.zeros((m, n)) + np.float("inf")
+    mD = np.zeros((m, n))
+    mX[np.int32(Pts[1]), np.int32(Pts[0])] = Pts[0] - np.round(Pts[0])
+    mY[np.int32(Pts[1]), np.int32(Pts[0])] = Pts[1] - np.round(Pts[1])
+    mD[np.int32(Pts[1]), np.int32(Pts[0])] = Pts[2]
+
+    KmX = np.zeros((ng, ng, m - ng, n - ng))
+    KmY = np.zeros((ng, ng, m - ng, n - ng))
+    KmD = np.zeros((ng, ng, m - ng, n - ng))
+
+    for i in range(ng):
+        for j in range(ng):
+            KmX[i, j] = mX[i: (m - ng + i), j: (n - ng + j)] - grid - 1 + i
+            KmY[i, j] = mY[i: (m - ng + i), j: (n - ng + j)] - grid - 1 + i
+            KmD[i, j] = mD[i: (m - ng + i), j: (n - ng + j)]
+    S = np.zeros_like(KmD[0, 0])
+    Y = np.zeros_like(KmD[0, 0])
+
+    for i in range(ng):
+        for j in range(ng):
+            s = 1 / np.sqrt(KmX[i, j] * KmX[i, j] + KmY[i, j] * KmY[i, j])
+            Y = Y + s * KmD[i, j]
+            S = S + s
+
+    S[S == 0] = 1
+    out = np.zeros((m, n))
+    out[grid + 1: -grid, grid + 1: -grid] = Y / S
+    return out
+
+
 def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, draw_big_circle=False):
     def py_func_project_3D_to_2D(points_3D, P):
         # Project on image
@@ -34,14 +76,14 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
 
         img_coordinates = lidar_points_2D[coordinates, :].astype(dtype=np.int32) #(4222, 2)
 
-        draw_big_circle=False # TODO
+        final_coordinates = np.concatenate((img_coordinates, values.transpose()[:, 1][:, np.newaxis]), 1).transpose()
+        inter_image = dense_map(final_coordinates, img_width, img_height, grid=15)
 
         if not draw_big_circle:
             image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose() # image is (1920, 1024, 3), values.transpose() is (4222, 3)
         else:
             # Slow elementwise circle drawing through opencv
             len = img_coordinates.shape[0]
-
             image = image.transpose([1, 0, 2]).squeeze().copy()
             import matplotlib as mpl
             import matplotlib.cm as cm
@@ -49,7 +91,7 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
             cmap = cm.jet
             m = cm.ScalarMappable(norm, cmap)
 
-            depth_map_color = values.transpose()[:, 1] #values.transpose is (4222, 3), [:, 1] is probably depth (z)
+            depth_map_color = values.transpose()[:, 1] #values.transpose is (4222, 3), [:, 1] is depth (z)
             depth_map_color = m.to_rgba(depth_map_color)
 
 
@@ -61,7 +103,7 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
                 tupel_value = (int(value[0]), int(value[1]), int(value[2]))
                 # print tupel_value
                 cv2.circle(image, (x, y), 3, tupel_value, -1)
-            return image #(1024, 1920, 3)
+            return image, inter_image #(1024, 1920, 3)
 
         return image.transpose([1, 0, 2]).squeeze() #(1024, 1920, 3)
 

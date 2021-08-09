@@ -78,5 +78,5 @@ if __name__ == '__main__':
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         out_pth = os.path.join(out_dir, interesting_sample + '.png')
-        plot_lidar_projection_on_image(img_pth, lidar_data_strongest, vtc, velodyne_to_camera, title='Lidar on Camera Projection Strongest Echo', out_pth=out_pth)
+        plot_lidar_projection_on_image(img_pth, lidar_data_strongest, vtc, velodyne_to_camera, title='Lidar on Camera Projection Strongest Echo', out_pth=None)
         break

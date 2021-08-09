@@ -55,23 +55,30 @@ def plot_lidar_projection_on_image(img_pth, pointcloud, vtc, velodyne_to_camera,
 
     # Resize image to other crop
     r = resize(frame)
-    lidar_image = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
+    lidar_image, inter_lidar_image = project_pointcloud(pointcloud, np.matmul(r.get_image_scaling(), vtc), velodyne_to_camera,
                                      list(r.dsize)[::-1] + [3], init=np.zeros(list(r.dsize)[::-1] + [3]),
                                      draw_big_circle=True)
     # lidar_image.shape==(1024, 1920, 3) - same as RGB image
 
     img = Image.open(img_pth)
 
-    if title is not None:
-        plt.title(title)
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(img)
+    ax[0].imshow(lidar_image, alpha=0.5)
+    ax[1].imshow(img)
+    ax[1].imshow(inter_lidar_image, alpha=0.5)
+    plt.show()
 
-    plt.imshow(img)
-    plt.imshow(lidar_image, alpha=0.5)
-    plt.axis('off')
-    if not out_pth:
-        plt.show()
-    else:
-        plt.savefig(out_pth, bbox_inches='tight', dpi=300)
+    # TODO
+    # if title is not None:
+    #     plt.title(title)
+    # plt.imshow(img)
+    # plt.imshow(lidar_image, alpha=0.5)
+    # plt.axis('off')
+    # if not out_pth:
+    #     plt.show()
+    # else:
+    #     plt.savefig(out_pth, bbox_inches='tight', dpi=300)
 
 
 def plot_3d_scatter(pointlcoud, plot_show=True):
