@@ -37,7 +37,7 @@ def project_pointcloud(lidar, vtc, velodyne_to_camera, image_shape, init=None, d
         draw_big_circle=False # TODO
 
         if not draw_big_circle:
-            image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose() # image is (1920, 1024, 3), values.transpose is (4222, 3)
+            image[img_coordinates[:, 0], img_coordinates[:, 1], :] = values.transpose() # image is (1920, 1024, 3), values.transpose() is (4222, 3)
         else:
             # Slow elementwise circle drawing through opencv
             len = img_coordinates.shape[0]
